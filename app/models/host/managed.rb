@@ -1,4 +1,17 @@
 class Host::Managed < Host::Base
+  cattr_accessor :cloned_parameters
+  self.cloned_parameters = {}
+
+  def self.include_in_clone(*attributes)
+    cloned_parameters[:include] ||= []
+    cloned_parameters[:include] += attributes
+  end
+
+  def self.exclude_from_clone(*attributes)
+    cloned_parameters[:except] ||= []
+    cloned_parameters[:except] += attributes
+  end
+
   include Hostext::Search
   include HostAspects::ManagedHostExtensions
   PROVISION_METHODS = %w[build image]
@@ -46,6 +59,7 @@ class Host::Managed < Host::Base
   after_save :update_hostgroups_puppetclasses, :if => :hostgroup_id_changed?
 
   def initialize(attributes = nil, options = {})
+    attributes = filter_aspect_ids(attributes)
     attributes = apply_inherited_attributes(attributes, false)
     super(attributes, options)
   end
@@ -340,7 +354,10 @@ class Host::Managed < Host::Base
     opts[:kind]               ||= "provision"
     opts[:operatingsystem_id] ||= operatingsystem_id
     opts[:hostgroup_id]       ||= hostgroup_id
-    opts[:environment_id]     ||= environment_id
+
+    host_aspects.each do |aspect|
+      opts = aspect.provisioning_template_options(opts)
+    end
 
     ProvisioningTemplate.find_template opts
   end
@@ -434,8 +451,7 @@ class Host::Managed < Host::Base
     info_hash['environment'] = param["foreman_env"] if Setting["enc_environment"] && param["foreman_env"]
 
     host_aspects.each do |aspect|
-      aspect_hash = aspect.respond_to?(:info) ? aspect.info : {}
-      info_hash.deep_merge! aspect_hash if aspect_hash
+      info_hash.deep_merge! aspect.info
     end
 
     info_hash
@@ -513,7 +529,7 @@ class Host::Managed < Host::Base
     host.puppet_proxy_id ||= proxy_id
 
     host.save(:validate => false) if host.new_record?
-    state = host.import_facts(facts)
+    state = host.import_facts(facts, proxy_id)
     [host, state]
   end
 
@@ -521,7 +537,7 @@ class Host::Managed < Host::Base
     super + [:domain, :architecture, :operatingsystem]
   end
 
-  def populate_fields_from_facts(facts = self.facts_hash, type = 'puppet')
+  def populate_fields_from_facts(facts = self.facts_hash, type = 'puppet', proxy_id = nil)
     importer = super
     if Setting[:update_environment_from_facts]
       set_non_empty_values importer, [:environment]
@@ -529,7 +545,9 @@ class Host::Managed < Host::Base
       self.environment ||= importer.environment unless importer.environment.blank?
     end
 
-    host_aspects.each { |aspect| aspect.populate_fields_from_facts(importer, type) }
+    HostAspects.configuration.registered_aspects.values.each do |aspect_config|
+      aspect_config.model_class.populate_fields_from_facts(self, importer, type, proxy_id)
+    end
 
     operatingsystem.architectures << architecture if operatingsystem && architecture && !operatingsystem.architectures.include?(architecture)
     self.save(:validate => false)
@@ -644,11 +662,31 @@ class Host::Managed < Host::Base
     end
     return attributes unless new_hostgroup
 
+    HostAspects.configuration.registered_aspects.values.each do |aspect_config|
+      aspect_attributes = attributes["#{aspect_config.model}_attributes"]
+      aspect_attributes = aspect_config.model_class.inherited_attributes(new_hostgroup, aspect_attributes)
+      attributes["#{aspect_config.model}_attributes"] = aspect_attributes if aspect_attributes
+    end
+
     inherited_attributes = hostgroup_inherited_attributes - attributes.keys
 
     inherited_attributes.each do |attribute|
       value = new_hostgroup.send("inherited_#{attribute}")
       attributes[attribute] = value
+    end
+
+    attributes
+  end
+
+  def filter_aspect_ids(attributes)
+    return nil unless attributes
+
+    #don't change the source to minimize side effects.
+    attributes = hash_clone(attributes)
+
+    HostAspects.configuration.registered_aspects.values.each do |aspect_config|
+      attributes_key = "#{aspect_config.model}_attributes"
+      attributes[attributes_key] = attributes[attributes_key].except(:id) if attributes[attributes_key]
     end
 
     attributes
@@ -739,15 +777,12 @@ class Host::Managed < Host::Base
     Setting[:root_pass]
   end
 
-  def clone
-    aspects = host_aspects.map do |aspect|
-      assoc = Host.reflect_on_all_associations.find {|a| a.class_name == aspect.execution_model_type}
-      assoc.name.to_sym
-    end
+  include_in_clone(:config_groups, :host_config_groups, :host_parameters, :lookup_values)
+  exclude_from_clone(:name, :mac, :ip, :uuid, :certname, :last_report, :lookup_value_matcher)
 
-    # do not copy system specific attributes
-    host = self.deep_clone(:include => [:config_groups, :host_config_groups, :host_classes, :host_parameters, :lookup_values] + aspects,
-                           :except  => [:name, :mac, :ip, :uuid, :certname, :last_report, :lookup_value_matcher])
+  def clone
+    host = self.deep_clone(self.cloned_parameters)
+
     self.interfaces.each do |nic|
       host.interfaces << nic.clone
     end
@@ -816,8 +851,7 @@ class Host::Managed < Host::Base
     end
 
     host_aspects.each do |aspect|
-      aspect_ids = aspect.smart_proxy_ids if aspect.respond_to? :smart_proxy_ids
-      ids += aspect_ids if aspect_ids
+      ids += aspect.smart_proxy_ids
     end
 
     ids.uniq.compact
@@ -899,7 +933,7 @@ class Host::Managed < Host::Base
 
   def template_filter_from_aspects(kind, base_filter)
     host_aspects.each do |aspect|
-      base_filter.deep_merge!(aspect.template_filter_options(kind) || {})
+      base_filter.deep_merge!(aspect.template_filter_options(kind))
     end
     base_filter
   end
