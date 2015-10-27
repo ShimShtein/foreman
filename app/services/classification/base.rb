@@ -1,7 +1,6 @@
 module Classification
   class Base
-    delegate :hostgroup, :environment_id, :puppetclass_ids, :classes,
-             :to => :host
+    delegate :hostgroup, :to => :host
 
     def initialize(args = {})
       @host = args[:host]

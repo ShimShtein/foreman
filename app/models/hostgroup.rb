@@ -211,6 +211,16 @@ class Hostgroup < ActiveRecord::Base
     unscoped_find(ancestry.to_s.split('/').last.to_i).update_puppetclasses_total_hosts if ancestry.present?
   end
 
+  def puppetca?
+    return false if self.respond_to?(:managed?) and !managed?
+    !!(puppet_ca_proxy and puppet_ca_proxy.url.present?)
+  end
+
+  def available_puppetclasses
+    return Puppetclass.scoped if environment_id.blank?
+    environment.puppetclasses - parent_classes
+  end
+
   protected
 
   def lookup_value_match

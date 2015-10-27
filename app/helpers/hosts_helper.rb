@@ -271,7 +271,6 @@ module HostsHelper
       [_("Realm"), (link_to(host.realm, hosts_path(:search => "realm = #{host.realm}")) if host.realm)],
       [_("IP Address"), host.ip],
       [_("MAC Address"), host.mac],
-      [_("Puppet Environment"), (link_to(host.environment, hosts_path(:search => "environment = #{host.environment}")) if host.environment)],
       [_("Host Architecture"), (link_to(host.arch, hosts_path(:search => "architecture = #{host.arch}")) if host.arch)],
       [_("Operating System"), (link_to(host.operatingsystem.to_label, hosts_path(:search => "os_description = #{host.operatingsystem.description}")) if host.operatingsystem)],
       [_("Host group"), (link_to(host.hostgroup, hosts_path(:search => %{hostgroup_title = "#{host.hostgroup}"})) if host.hostgroup)],
@@ -337,13 +336,6 @@ module HostsHelper
               link_to(_("Loading power state ..."), '#', :disabled => true, :id => :loading_power_state)
           )
         end,
-        button_group(
-          if host.try(:puppet_proxy)
-            link_to_if_authorized(_("Run puppet"), hash_for_puppetrun_host_path(:id => host).merge(:auth_object => host, :permission => 'puppetrun_hosts'),
-                                  :disabled => !Setting[:puppetrun],
-                                  :title    => _("Trigger a puppetrun on a node; requires that puppet run is enabled"))
-          end
-        ),
         button_group(
             link_to_if_authorized(_("Delete"), hash_for_host_path(:id => host).merge(:auth_object => host, :permission => 'destroy_hosts'),
                                   :class => "btn btn-danger",

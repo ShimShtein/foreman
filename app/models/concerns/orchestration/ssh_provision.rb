@@ -80,7 +80,7 @@ module Orchestration::SSHProvision
     if client.deploy!
       # since we are in a after_commit callback, we need to fetch our host again, and clean up puppet ca on our own
       Host.find(id).built
-      respond_to?(:initialize_puppetca,true) && initialize_puppetca && delAutosign if puppetca?
+      respond_to?(:initialize_puppetca,true) && initialize_puppetca && delAutosign if puppet_aspect && puppet_aspect.puppetca?
     else
       raise ::Foreman::Exception.new(N_("Provision script had a non zero exit, removing instance"))
     end

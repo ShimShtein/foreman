@@ -16,8 +16,6 @@ class Host::Managed < Host::Base
   include HostAspects::ManagedHostExtensions
   PROVISION_METHODS = %w[build image]
 
-  has_many :host_classes, :foreign_key => :host_id
-  has_many :puppetclasses, :through => :host_classes, :dependent => :destroy
   belongs_to :hostgroup
   has_many :reports, :foreign_key => :host_id
   has_one :last_report_object, :foreign_key => :host_id, :order => "#{Report.table_name}.id DESC", :class_name => 'Report'
@@ -55,8 +53,6 @@ class Host::Managed < Host::Base
   # Custom hooks will be executed after_commit
   after_commit :build_hooks
   before_save :clear_data_on_build
-  before_save :clear_puppetinfo, :if => :environment_id_changed?
-  after_save :update_hostgroups_puppetclasses, :if => :hostgroup_id_changed?
 
   def initialize(attributes = nil, options = {})
     attributes = filter_aspect_ids(attributes)
@@ -80,7 +76,11 @@ class Host::Managed < Host::Base
   include HostCommon
 
   class Jail < ::Safemode::Jail
-    allow :name, :diskLayout, :puppetmaster, :puppet_ca_server, :operatingsystem, :os, :environment, :ptable, :hostgroup,
+    allow :name, :diskLayout,
+    #:puppetmaster, :puppet_ca_server,
+    :operatingsystem, :os,
+    #:environment,
+    :ptable, :hostgroup,
       :url_for_boot, :params, :info, :hostgroup, :compute_resource, :domain, :ip, :mac, :shortname, :architecture,
       :model, :certname, :capabilities, :provider, :subnet, :token, :location, :organization, :provision_method,
       :image_build?, :pxe_build?, :otp, :realm, :param_true?, :param_false?, :nil?, :indent, :primary_interface,
@@ -173,7 +173,6 @@ class Host::Managed < Host::Base
   alias_attribute :os, :operatingsystem
   alias_attribute :arch, :architecture
 
-  validates :environment_id, :presence => true, :unless => Proc.new { |host| host.puppet_proxy_id.blank? }
   validates :organization_id, :presence => true, :if => Proc.new {|host| host.managed? && SETTINGS[:organizations_enabled] }
   validates :location_id,     :presence => true, :if => Proc.new {|host| host.managed? && SETTINGS[:locations_enabled] }
 
@@ -295,34 +294,6 @@ class Host::Managed < Host::Base
     end
   end
 
-  #retuns fqdn of host puppetmaster
-  def pm_fqdn
-    puppetmaster == "puppet" ? "puppet.#{domain.name}" : "#{puppetmaster}"
-  end
-
-  # Cleans Certificate and enable Autosign
-  # Called before a host is given their provisioning template
-  # Returns : Boolean status of the operation
-  def handle_ca
-    # If there's no puppetca, tell the caller that everything is ok
-    return true unless Setting[:manage_puppetca]
-    return true unless puppetca?
-
-    # From here out, we expect things to work and return true
-    return false unless respond_to?(:initialize_puppetca, true)
-    return false unless initialize_puppetca
-    return false unless delCertificate
-
-    # If use_uuid_for_certificates is true, reuse the certname UUID value.
-    # If false, then reset the certname if it does not match the hostname.
-    if (Setting[:use_uuid_for_certificates] ? !Foreman.is_uuid?(certname) : certname != hostname)
-      logger.info "Removing certificate value #{certname} for host #{name}"
-      self.certname = nil
-    end
-
-    setAutosign
-  end
-
   # Request a new OTP for a host
   def handle_realm
     return true unless realm?
@@ -381,20 +352,9 @@ class Host::Managed < Host::Base
     puppet_proxy_id.present?
   end
 
-  # the environment used by #clases nees to be self.environment and not self.parent.environment
-  def parent_classes
-    return [] unless hostgroup
-    hostgroup.classes(environment)
-  end
-
   def parent_config_groups
     return [] unless hostgroup
     hostgroup.all_config_groups
-  end
-
-  # returns the list of puppetclasses a host is in.
-  def puppetclasses_names
-    all_puppetclasses.collect {|c| c.name}
   end
 
   # provide information about each node, mainly used for puppet external nodes
@@ -405,7 +365,6 @@ class Host::Managed < Host::Base
     # Static parameters
     param = {}
     # maybe these should be moved to the common parameters, leaving them in for now
-    param["puppetmaster"] = puppetmaster
     param["domainname"]   = domain.fullname unless domain.nil? or domain.fullname.nil?
     param["realm"]        = realm.name unless realm.nil?
     param["hostgroup"]    = hostgroup.to_label unless hostgroup.nil?
@@ -417,10 +376,8 @@ class Host::Managed < Host::Base
     end
     if SETTINGS[:unattended]
       param["root_pw"]      = root_pass unless (!operatingsystem.nil? && operatingsystem.password_hash == 'Base64')
-      param["puppet_ca"]    = puppet_ca_server if puppetca?
     end
     param["comment"]      = comment unless comment.blank?
-    param["foreman_env"]  = environment.to_s unless environment.nil? or environment.name.nil?
     if SETTINGS[:login] and owner
       param["owner_name"]  = owner.name
       param["owner_email"] = owner.is_a?(User) ? owner.mail : owner.users.map(&:mail)
@@ -437,18 +394,9 @@ class Host::Managed < Host::Base
     # Parse ERB values contained in the parameters
     param = SafeRender.new(:variables => { :host => self }).parse(param)
 
-    classes = if self.environment.nil?
-                []
-              elsif Setting[:Parametrized_Classes_in_ENC] && Setting[:Enable_Smart_Variables_in_ENC]
-                lookup_keys_class_params
-              else
-                self.puppetclasses_names
-              end
-
     info_hash = {}
-    info_hash['classes'] = classes
+    info_hash['classes'] = []
     info_hash['parameters'] = param
-    info_hash['environment'] = param["foreman_env"] if Setting["enc_environment"] && param["foreman_env"]
 
     host_aspects.each do |aspect|
       info_hash.deep_merge! aspect.info
@@ -525,9 +473,6 @@ class Host::Managed < Host::Base
     # if we were given a certname but found the Host by hostname we should update the certname
     host.certname = certname if certname.present?
 
-    # if proxy authentication is enabled and we have no puppet proxy set, use it.
-    host.puppet_proxy_id ||= proxy_id
-
     host.save(:validate => false) if host.new_record?
     state = host.import_facts(facts, proxy_id)
     [host, state]
@@ -539,11 +484,6 @@ class Host::Managed < Host::Base
 
   def populate_fields_from_facts(facts = self.facts_hash, type = 'puppet', proxy_id = nil)
     importer = super
-    if Setting[:update_environment_from_facts]
-      set_non_empty_values importer, [:environment]
-    else
-      self.environment ||= importer.environment unless importer.environment.blank?
-    end
 
     HostAspects.configuration.registered_aspects.values.each do |aspect_config|
       aspect_config.model_class.populate_fields_from_facts(self, importer, type, proxy_id)
@@ -562,44 +502,6 @@ class Host::Managed < Host::Base
     self.build = true
     self.save
     errors.empty?
-  end
-
-  # this method accepts a puppets external node yaml output and generate a node in our setup
-  # it is assumed that you already have the node (e.g. imported by one of the rack tasks)
-  def importNode(nodeinfo)
-    myklasses= []
-    # puppet classes
-    nodeinfo["classes"].each do |klass|
-      if (pc = Puppetclass.find_by_name(klass))
-        myklasses << pc
-      else
-        error = _("Failed to import %{klass} for %{name}: doesn't exists in our database - ignoring") % { :klass => klass, :name => name }
-        logger.warn error
-        $stdout.puts error
-      end
-      self.puppetclasses = myklasses
-    end
-
-    # parameters are a bit more tricky, as some classifiers provide the facts as parameters as well
-    # not sure what is puppet priority about it, but we ignore it if has a fact with the same name.
-    # additionally, we don't import any non strings values, as puppet don't know what to do with those as well.
-
-    myparams = self.info["parameters"]
-    nodeinfo["parameters"].each_pair do |param,value|
-      next if fact_names.exists? :name => param
-      next unless value.is_a?(String)
-
-      # we already have this parameter
-      next if myparams.has_key?(param) and myparams[param] == value
-
-      unless (hp = self.host_parameters.create(:name => param, :value => value))
-        logger.warn "Failed to import #{param}/#{value} for #{name}: #{hp.errors.full_messages.join(", ")}"
-        $stdout.puts $ERROR_INFO
-      end
-    end
-
-    self.clear_host_parameters_cache!
-    self.save
   end
 
   # counts each association of a given host
@@ -644,7 +546,7 @@ class Host::Managed < Host::Base
   end
 
   def hostgroup_inherited_attributes
-    %w{puppet_proxy_id puppet_ca_proxy_id environment_id compute_profile_id realm_id}
+    %w{compute_profile_id realm_id}
   end
 
   def apply_inherited_attributes(attributes, initialized = true)
@@ -730,19 +632,6 @@ class Host::Managed < Host::Base
     self.uuid = nil
     self.compute_resource_id = nil
     self.save!(:validate => false) # don't want to trigger callbacks
-  end
-
-  def puppetrun!
-    unless puppet_proxy.present?
-      errors.add(:base, _("no puppet proxy defined - cant continue"))
-      logger.warn "unable to execute puppet run, no puppet proxies defined"
-      return false
-    end
-    ProxyAPI::Puppet.new({:url => puppet_proxy.url}).run fqdn
-  rescue => e
-    errors.add(:base, _("failed to execute puppetrun: %s") % e)
-    Foreman::Logging.exception("Unable to execute puppet run", e)
-    false
   end
 
   # if certname does not exist, use hostname instead
@@ -1048,10 +937,6 @@ class Host::Managed < Host::Base
     Classification::GlobalParam.new(:host => self).enc
   end
 
-  def lookup_keys_class_params
-    Classification::ClassParam.new(:host => self).enc
-  end
-
   def assign_hostgroup_attributes(attrs = [])
     attrs.each do |attr|
       next if send(attr).to_i == -1
@@ -1072,12 +957,6 @@ class Host::Managed < Host::Base
       end
     end if SETTINGS[:unattended] and managed? and os and pxe_build?
 
-    puppetclasses.select("puppetclasses.id,puppetclasses.name").uniq.each do |e|
-      unless environment.puppetclasses.map(&:id).include?(e.id)
-        errors.add(:puppetclasses, _("%{e} does not belong to the %{environment} environment") % { :e => e, :environment => environment })
-        status = false
-      end
-    end if environment
     status
   end
 
@@ -1122,11 +1001,6 @@ class Host::Managed < Host::Base
     errors.add(:name, _("must not include periods")) if ( managed? && shortname && shortname.include?(".") && SETTINGS[:unattended] )
   end
 
-  def update_hostgroups_puppetclasses
-    Hostgroup.find(hostgroup_id_was).update_puppetclasses_total_hosts if hostgroup_id_was.present?
-    Hostgroup.find(hostgroup_id).update_puppetclasses_total_hosts     if hostgroup_id.present?
-  end
-
   # we need this so when attribute like build changes we trigger tftp orchestration so token is updated on tftp
   # but we should trigger it only for existing records and unless interfaces also changed (then validation is run
   # on them automatically)
@@ -1146,13 +1020,6 @@ class Host::Managed < Host::Base
     Report.delete_all("host_id = #{id}")
   end
 
-  def clear_puppetinfo
-    unless environment
-      self.puppetclasses = []
-      self.config_groups = []
-    end
-  end
-
   def refresh_build_status
     self.get_status(HostStatus::BuildStatus).refresh
   end
@@ -1164,4 +1031,21 @@ class Host::Managed < Host::Base
     params += object.send(object_parameters_symbol)
     params
   end
+
+#  def environment
+#    debugger
+#    throw 'Old env'
+#  end
+#
+#  def environment=(_)
+#    throw 'old env'
+#  end
+#  def environment_id
+#    debugger
+#    throw 'Old environment_id'
+#  end
+#
+#  def environment_id=(_)
+#    throw 'old environment_id'
+#  end
 end

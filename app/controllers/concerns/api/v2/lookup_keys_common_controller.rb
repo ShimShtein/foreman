@@ -115,7 +115,7 @@ module Api::V2::LookupKeysCommonController
       base.smart_class_parameters_for_class(puppetclass_ids, @environment.id)
     elsif @host || @hostgroup
       puppetclass_ids = (@host || @hostgroup).all_puppetclasses.map(&:id)
-      environment_id  = (@host || @hostgroup).environment_id
+      environment_id  = (@host.try(:puppet_aspect) || @hostgroup).environment_id
       # scope :parameters_for_class uses .override
       base.parameters_for_class(puppetclass_ids, environment_id)
     end

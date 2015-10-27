@@ -1,6 +1,8 @@
 module Classification
-  class GlobalParam < Base
+  class GlobalParam < PuppetParam
     def enc
+      return {} unless puppet_aspect
+      
       values = values_hash
 
       parameters = {}

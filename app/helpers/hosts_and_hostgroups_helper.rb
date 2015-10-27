@@ -102,6 +102,7 @@ module HostsAndHostgroupsHelper
 
   def interesting_klasses(obj)
     classes    = obj.all_puppetclasses
+    return nil unless classes
     classes_ids = classes.reorder('').pluck('puppetclasses.id')
     smart_vars = VariableLookupKey.reorder('').where(:puppetclass_id => classes_ids).uniq.pluck(:puppetclass_id)
     class_vars = PuppetclassLookupKey.reorder('').joins(:environment_classes).where(:environment_classes => { :puppetclass_id => classes_ids }).uniq.pluck('environment_classes.puppetclass_id')
