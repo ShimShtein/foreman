@@ -26,15 +26,8 @@ child :config_groups do
   extends "api/v2/config_groups/main"
 end
 
-host_additional_views(@host).each do |id, tab|
-  if tab.is_a? String
-    node do |host|
-      partial "api/v2/#{tab}", :object => host
-    end
-  else
-    child tab => id.to_sym do |facet|
-      class_name = tab.class.name.demodulize.underscore
-      extends "api/v2/#{class_name.pluralize}/base"
-    end
+@host.host_facets_with_definitions.each do |_facet, definition|
+  node do 
+    partial(definition.api_single_view, :object => host) if definition.api_single_view
   end
 end

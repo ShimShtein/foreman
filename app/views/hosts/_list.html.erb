@@ -7,7 +7,7 @@
       <th width="25%"><%= sort :name, :as => _('Name') %></th>
 
       <% Facets.configuration.registered_facets.values.each do |config| %>
-      <%= render "#{config.name}/host/list_headers" %>
+      <%= render "#{config.name}/host/list_headers" if lookup_context.find_all("#{config.name}/host/list_headers").any? %>
       <% end %>
 
       <th class="hidden-xs" width="17%"><%= sort :os_title, :as => _("Operating system") %></th>
@@ -28,7 +28,7 @@
         </td>
 
         <% Facets.configuration.registered_facets.values.each do |config| %>
-        <%= render "#{config.name}/host/list", :locals => { :host => host } %>
+        <%= render("#{config.name}/host/list", :locals => { :host => host }) if lookup_context.find_all("#{config.name}/host/list").any? %>
         <% end %>
 
         <td class="hidden-xs ellipsis"><%= (icon(host.operatingsystem, :size => "18x18") + " #{host.operatingsystem.to_label}").html_safe if host.operatingsystem %></td>
