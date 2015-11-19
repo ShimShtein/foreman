@@ -54,15 +54,16 @@ class LocationTest < ActiveSupport::TestCase
     FactoryGirl.create(:host,
                        :compute_resource => compute_resources(:one),
                        :domain           => domain,
-                       :environment      => environments(:production),
                        :location         => location,
                        :medium           => media(:one),
                        :operatingsystem  => operatingsystems(:centos5_3),
                        :owner            => users(:restricted),
-                       :puppet_proxy     => smart_proxies(:puppetmaster),
                        :realm            => realms(:myrealm),
                        :subnet           => subnet,
-                       :organization     => nil)
+                       :organization     => nil,
+                       :puppet_facet_attributes => {
+                         :environment => environments(:production),
+                         :puppet_proxy => smart_proxies(:puppetmaster)})
     FactoryGirl.create(:os_default_template,
                        :provisioning_template  => templates(:mystring2),
                        :operatingsystem  => operatingsystems(:centos5_3),
@@ -70,7 +71,7 @@ class LocationTest < ActiveSupport::TestCase
     # run used_ids method
     used_ids = location.used_ids
     # get results from Host object
-    environment_ids = Host.where(:location_id => location.id).uniq.pluck(:environment_id).compact
+    environment_ids = Host.where(:location_id => location.id).joins(:puppet_facet).uniq.pluck('puppet_facets.environment_id').compact
     hostgroup_ids = Host.where(:location_id => location.id).uniq.pluck(:hostgroup_id).compact
     subnet_ids = Host.where(:location_id => location.id).joins(:primary_interface => :subnet).uniq.pluck(:subnet_id).map(&:to_i).compact
     domain_ids = Host.where(:location_id => location.id).joins(:primary_interface => :domain).uniq.pluck(:domain_id).map(&:to_i).compact
@@ -225,15 +226,16 @@ class LocationTest < ActiveSupport::TestCase
     FactoryGirl.create(:host,
                        :compute_resource => compute_resources(:one),
                        :domain           => domain1,
-                       :environment      => environments(:production),
                        :location         => parent,
                        :organization     => taxonomies(:organization1),
                        :medium           => media(:one),
                        :operatingsystem  => operatingsystems(:centos5_3),
                        :owner            => users(:restricted),
-                       :puppet_proxy     => smart_proxies(:puppetmaster),
                        :realm            => realms(:myrealm),
-                       :subnet           => subnet)
+                       :subnet           => subnet,
+                       :puppet_facet_attributes => {
+                         :environment => environments(:production),
+                         :puppet_proxy => smart_proxies(:puppetmaster)})
     FactoryGirl.create(:host,
                        :location         => parent,
                        :domain           => domain2)

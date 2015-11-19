@@ -80,7 +80,7 @@ module Orchestration::SSHProvision
     if client.deploy!
       # since we are in a after_commit callback, we need to fetch our host again, and clean up puppet ca on our own
       Host.find(id).built
-      respond_to?(:initialize_puppetca,true) && initialize_puppetca && delAutosign if puppetca?
+      respond_to?(:initialize_puppetca,true) && initialize_puppetca && delAutosign if puppet_facet && puppet_facet.puppetca?
     else
       if Setting[:clean_up_failed_deployment]
         logger.info "Deleting host #{name} because of non zero exit code of deployment script."

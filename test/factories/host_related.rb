@@ -117,25 +117,21 @@ FactoryGirl.define do
       set_nic_attributes(host, deferred_nic_attrs, evaluator)
     end
 
-    trait :with_environment do
-      environment
-    end
-
     trait :with_medium do
       medium
     end
 
     trait :with_hostgroup do
-      hostgroup { FactoryGirl.create(:hostgroup, :environment => environment) }
+      hostgroup { FactoryGirl.create(:hostgroup, :environment => puppet_facet.try(:environment)) }
     end
 
     trait :with_puppetclass do
-      environment
-      puppetclasses { [ FactoryGirl.create(:puppetclass, :environments => [environment]) ] }
+      with_puppet
+      puppetclasses { [ FactoryGirl.create(:puppetclass, :environments => [puppet_facet.environment]) ] }
     end
 
     trait :with_config_group do
-      config_groups { [ FactoryGirl.create(:config_group, :with_puppetclass, :class_environments => [environment]) ] }
+      config_groups { [ FactoryGirl.create(:config_group, :with_puppetclass, :class_environments => [puppet_facet.try(:environment)]) ] }
     end
 
     trait :with_parameter do
@@ -186,10 +182,7 @@ FactoryGirl.define do
     end
 
     trait :with_puppet do
-      environment
-      puppet_proxy do
-        FactoryGirl.create(:smart_proxy, :features => [FactoryGirl.create(:feature, :puppet)])
-      end
+      association :puppet_facet
     end
 
     trait :managed do
@@ -270,17 +263,19 @@ FactoryGirl.define do
 
     trait :with_puppet_orchestration do
       managed
-      environment
+      with_puppet
+      association :puppet_facet, :factory => [:puppet_facet, :with_orchestration]
       association :compute_resource, :factory => :libvirt_cr
       domain
       interfaces { [ FactoryGirl.build(:nic_primary_and_provision) ] }
-      puppet_ca_proxy do
-        FactoryGirl.create(:smart_proxy, :features => [FactoryGirl.create(:feature, :puppetca)])
-      end
     end
 
     trait :with_realm do
       realm
+    end
+
+    trait :with_environment do
+      with_puppet
     end
   end
 

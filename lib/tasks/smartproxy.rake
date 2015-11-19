@@ -39,7 +39,7 @@ namespace :smartproxy do
       puts proxy.names.join ", "
     end
     for host in Host.all
-      next if host.puppetca?
+      next if host.puppet_facet && host.puppet_facet.puppetca?
 
       for proxy in proxies
         fqpm = host.pm_fqdn

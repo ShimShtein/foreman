@@ -108,4 +108,18 @@ FactoryGirl.define do
       puppetclasses { [ FactoryGirl.create(:puppetclass, :environments => class_environments) ] }
     end
   end
+
+  factory :puppet_facet do
+    environment
+
+    puppet_proxy do
+      FactoryGirl.create(:smart_proxy, :features => [FactoryGirl.create(:feature, :puppet)])
+    end
+
+    trait :with_orchestration do
+      puppet_ca_proxy do
+        FactoryGirl.create(:smart_proxy, :features => [FactoryGirl.create(:feature, :puppetca)])
+      end
+    end
+  end
 end

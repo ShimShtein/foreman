@@ -66,7 +66,8 @@ class HostsController < ApplicationController
   end
 
   def new
-    @host = Host.new :managed => true
+    @host = Host::Managed.new :managed => true
+    @host.build_puppet_facet
   end
 
   # Clone the host
@@ -186,7 +187,7 @@ class HostsController < ApplicationController
 
   def puppetrun
     return deny_access unless Setting[:puppetrun]
-    if @host.puppetrun!
+    if @host.puppet_facet && @host.puppet_facet.puppetrun!
       notice _("Successfully executed, check log files for more details")
     else
       error @host.errors[:base].to_sentence
@@ -692,7 +693,6 @@ class HostsController < ApplicationController
     return unless @host
 
     taxonomy_scope
-    @environment     = @host.environment
     @architecture    = @host.architecture
     @domain          = @host.domain
     @operatingsystem = @host.operatingsystem

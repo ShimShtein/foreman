@@ -1,6 +1,8 @@
 module Classification
-  class ClassParam < Base
+  class ClassParam < PuppetParam
     def enc
+      return {} unless puppet_facet
+      
       key_hash = hashed_class_parameters
       values   = values_hash
 
@@ -24,6 +26,12 @@ module Classification
 
     def class_parameters
       @keys ||= PuppetclassLookupKey.includes(:environment_classes).parameters_for_class(puppetclass_ids, environment_id)
+    end
+
+    def attr_to_value(element)
+      return puppet_facet.send(element) if puppet_facet.respond_to?(element)
+
+      super
     end
 
     private

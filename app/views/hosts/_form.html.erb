@@ -11,9 +11,6 @@
 
     <ul class="nav nav-tabs" data-tabs="tabs">
       <li class="active"><a href="#primary" data-toggle="tab"><%= _('Host') %></a></li>
-      <% if SmartProxy.with_features("Puppet").count > 0 %>
-        <li><a href="#puppet_klasses" data-toggle="tab"><%= _('Puppet Classes') %></a></li>
-      <% end %>
       <li id="network_tab" data-refresh-url="<%= interfaces_hosts_path %>"><a href="#network" data-toggle="tab"><%= _('Interfaces') %></a></li>
       <% if SETTINGS[:unattended] and @host.managed %>
         <li><a href="#os" data-toggle="tab"><%= _('Operating System') %></a></li>
@@ -87,14 +84,6 @@
 
         <%= realm_field f, true, @host.hostgroup && @host.hostgroup_id_was.nil? %>
 
-      </div>
-
-      <div class="tab-pane" id="puppet_klasses">
-        <% if @environment or @hostgroup %>
-          <%= render 'puppetclasses/class_selection', :obj => @host %>
-        <% else %>
-          <%= alert :class => 'alert-warning', :text =>  _('Please select an environment first') %>
-        <% end %>
       </div>
 
       <%= f.hidden_field :managed %>

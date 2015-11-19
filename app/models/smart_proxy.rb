@@ -61,8 +61,8 @@ class SmartProxy < ActiveRecord::Base
     ids << hosts.joins(:primary_interface => :subnet).pluck('DISTINCT subnets.dns_id')
     ids << hosts.joins(:primary_interface => :domain).pluck('DISTINCT domains.dns_id')
     ids << hosts.joins(:realm).pluck('DISTINCT realm_proxy_id')
-    ids << hosts.pluck('DISTINCT puppet_proxy_id')
-    ids << hosts.pluck('DISTINCT puppet_ca_proxy_id')
+    ids << hosts.joins(:puppet_facet).pluck('DISTINCT puppet_facets.puppet_proxy_id')
+    ids << hosts.joins(:puppet_facet).pluck('DISTINCT puppet_facets.puppet_ca_proxy_id')
     ids << hosts.joins(:hostgroup).pluck('DISTINCT hostgroups.puppet_proxy_id')
     ids << hosts.joins(:hostgroup).pluck('DISTINCT hostgroups.puppet_ca_proxy_id')
     # returned both 7, "7". need to convert to integer or there are duplicates

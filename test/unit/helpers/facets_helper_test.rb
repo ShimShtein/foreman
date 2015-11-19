@@ -26,7 +26,7 @@ class FacetsHelperTest < ActionView::TestCase
     end
 
     test '#helper_tabs returns hash if hash specified' do
-      @facet_config.tabs = {:my_new_tab => 'my/tab/template.html.erb'}
+      @facet_config.add_tabs(:my_new_tab => 'my/tab/template.html.erb')
       tabs = helper_tabs(@host)
 
       assert_equal 'my/tab/template.html.erb', tabs[:my_new_tab]
@@ -34,7 +34,7 @@ class FacetsHelperTest < ActionView::TestCase
 
     test '#helper_tabs returns hash if method specified' do
       expects(:my_tabs_method).returns({:my_new_tab => 'my/tab/template.html.erb'})
-      @facet_config.tabs = :my_tabs_method
+      @facet_config.add_tabs(:my_tabs_method)
       tabs = helper_tabs(@host)
 
       assert_equal 'my/tab/template.html.erb', tabs[:my_new_tab]

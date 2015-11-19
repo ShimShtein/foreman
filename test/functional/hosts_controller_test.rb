@@ -86,8 +86,8 @@ class HostsControllerTest < ActionController::TestCase
       }, set_session_user
     end
     new_host = Host.search_for('myotherfullhost').first
-    assert_equal new_host.environment, hostgroup.environment
-    assert_equal new_host.puppet_proxy, hostgroup.puppet_proxy
+    assert_equal new_host.puppet_facet.environment, hostgroup.environment
+    assert_equal new_host.puppet_facet.puppet_proxy, hostgroup.puppet_proxy
     assert_redirected_to host_url(assigns['host'])
   end
 
@@ -976,13 +976,15 @@ class HostsControllerTest < ActionController::TestCase
                         :domain_id          => domains(:mydomain).id,
                         :operatingsystem_id => operatingsystems(:redhat).id,
                         :architecture_id    => architectures(:x86_64).id,
-                        :environment_id     => environments(:production).id,
                         :subnet_id          => subnets(:one).id,
                         :disk               => "empty partition",
-                        :puppet_proxy_id    => smart_proxies(:puppetmaster).id,
                         :root_pass          => "123456789",
                         :location_id        => taxonomies(:location1).id,
-                        :organization_id    => taxonomies(:organization1).id
+                        :organization_id    => taxonomies(:organization1).id,
+                        :puppet_facet_attributes => {
+                          :environment_id     => environments(:production).id,
+                          :puppet_proxy_id    => smart_proxies(:puppetmaster).id
+                        }
                        )
   end
 end

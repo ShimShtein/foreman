@@ -6,9 +6,11 @@ class HostBuildStatusTest < ActiveSupport::TestCase
   setup do
     User.current = users(:admin)
     @host = Host.new(:name => "myfullhost", :mac => "aabbecddeeff", :ip => "2.3.4.03", :ptable => FactoryGirl.create(:ptable), :medium => media(:one),
-                    :domain => domains(:mydomain), :operatingsystem => operatingsystems(:redhat), :subnet => subnets(:one), :puppet_proxy => smart_proxies(:puppetmaster),
-                    :architecture => architectures(:x86_64), :environment => environments(:production), :managed => true,
+                    :domain => domains(:mydomain), :operatingsystem => operatingsystems(:redhat), :subnet => subnets(:one),
+                    :architecture => architectures(:x86_64), :managed => true,
                     :owner_type => "User", :root_pass => "xybxa6JUkz63w")
+    @host.build_puppet_facet(:environment => environments(:production), :puppet_proxy => smart_proxies(:puppetmaster))
+
     @build = @host.build_status_checker
     # bypass host.valid?
     HostBuildStatus.any_instance.stubs(:host_status).returns(true)

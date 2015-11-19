@@ -6,7 +6,7 @@ class LookupKeyTest < ActiveSupport::TestCase
                                :location      => taxonomies(:location1),
                                :organization  => taxonomies(:organization1),
                                :puppetclasses => [puppetclasses(:one)],
-                               :environment   => environments(:production))
+                               :puppet_facet_attributes => { :environment   => environments(:production) })
   end
 
   def test_element_seperations
@@ -64,12 +64,12 @@ class LookupKeyTest < ActiveSupport::TestCase
 
   def test_multiple_paths
     @host1.hostgroup = hostgroups(:common)
-    @host1.environment = environments(:testing)
+    @host1.puppet_facet.environment = environments(:testing)
 
     @host2.hostgroup = hostgroups(:unusual)
-    @host2.environment = environments(:testing)
+    @host2.puppet_facet.environment = environments(:testing)
 
-    @host3.environment = environments(:testing)
+    @host3.puppet_facet.environment = environments(:testing)
 
     default = "default"
     key    = ""

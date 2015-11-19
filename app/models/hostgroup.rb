@@ -207,6 +207,16 @@ class Hostgroup < ActiveRecord::Base
     subtree.sum(:hosts_count)
   end
 
+  def puppetca?
+    return false if self.respond_to?(:managed?) and !managed?
+    !!(puppet_ca_proxy and puppet_ca_proxy.url.present?)
+  end
+
+  def available_puppetclasses
+    return Puppetclass.scoped if environment_id.blank?
+    environment.puppetclasses - parent_classes
+  end
+
   protected
 
   def lookup_value_match

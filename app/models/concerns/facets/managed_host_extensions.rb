@@ -61,7 +61,7 @@ module Facets
       facet_instance = send(facet)
       return nil unless facet_instance
 
-      facet_instance.send(property, args)
+      facet_instance.send(property, *args)
     end
   end
 end
