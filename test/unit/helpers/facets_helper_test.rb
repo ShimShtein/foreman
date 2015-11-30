@@ -11,8 +11,12 @@ class FacetsHelperTest < ActionView::TestCase
     setup do
       @facet_model = TestFacet.new
       @host = mock('host')
-      @facet_config = Facets::Entry.new(:test_facet, 'FacetsHelperTest::TestFacet')
-      @host.stubs(:host_facets_with_definitions).returns({ @facet_model => @facet_config })
+      @facet_config = Facets::Entry.new(FacetsHelperTest::TestFacet, :test_facet)
+      @host.stubs(:facets_with_definitions).returns({ @facet_model => @facet_config })
+    end
+
+    teardown do
+      Host::Managed.cloned_parameters[:include].delete(:test_facet)
     end
 
     test '#load_tabs returns hash of facets' do

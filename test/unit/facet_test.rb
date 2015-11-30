@@ -11,7 +11,7 @@ end
 
 class FacetTest < ActiveSupport::TestCase
   setup do
-    @config = Facets::Configuration.new
+    @config = {}
     Facets.stubs(:configuration).returns(@config)
   end
 
@@ -23,14 +23,14 @@ class FacetTest < ActiveSupport::TestCase
 
   context 'namespaced facets' do
     setup do
-      @config.register :namespaced_facet, 'TestModule::ModuleTestFacet'
+      Facets.register TestModule::ModuleTestFacet, :namespaced_facet
 
       @host = Host::Managed.new
       @facet = @host.build_namespaced_facet
     end
 
     test 'can create a namespaced facet' do
-      assert_equal @facet, @host.host_facets.first
+      assert_equal @facet, @host.facets.first
     end
 
     test 'returns facets attributes' do
@@ -42,14 +42,16 @@ class FacetTest < ActiveSupport::TestCase
 
   context 'managed host behavior' do
     setup do
-      @config.register 'TestFacet'
+      Facets.register TestFacet do
+        template_compatibility_properties :test_property
+      end
 
       @host = Host::Managed.new
       @facet = @host.build_test_facet
     end
 
     test 'registered facets are subscribed properly' do
-      assert_equal @facet, @host.host_facets.first
+      assert_equal @facet, @host.facets.first
     end
 
     test 'facets are queried for info' do
@@ -73,13 +75,12 @@ class FacetTest < ActiveSupport::TestCase
 
     test 'facets are cloned to the new host' do
       facet_clone = @facet.dup
-      facet_clone.expects(:after_clone)
       @facet.stubs(:dup).returns(facet_clone)
 
       cloned_host = @host.clone
 
       assert_equal facet_clone, cloned_host.test_facet
-      assert_equal facet_clone, cloned_host.host_facets.first
+      assert_equal facet_clone, cloned_host.facets.first
     end
 
     test 'facets can modify templates selection' do
@@ -93,6 +94,12 @@ class FacetTest < ActiveSupport::TestCase
       attributes = @host.attributes
 
       assert_not_nil attributes["test_facet_attributes"]
+    end
+
+    test 'host redirects compatibility properties to facet' do
+      @facet.expects(:test_property).returns('my value')
+
+      assert_equal 'my value', @host.test_property
     end
   end
 end

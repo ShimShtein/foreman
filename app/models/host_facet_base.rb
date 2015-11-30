@@ -1,12 +1,7 @@
 class HostFacetBase < ActiveRecord::Base
   self.abstract_class = true
 
-  def self.inherited(subclass)
-    super
-    subclass.class_eval do
-      belongs_to_host
-    end
-  end
+  belongs_to_host
 
   # Add facet's details to host's ENC by returning it from this method
   # Basic ENC hash structure:
@@ -26,18 +21,14 @@ class HostFacetBase < ActiveRecord::Base
     []
   end
 
-  # This method will be called after a host with all its facets is cloned.
-  def after_clone
-  end
-
   # Add any filters to template selection returned from host
   def template_filter_options(kind)
     {}
   end
 
-  # Add or change search criteria for finding a configuration template.
-  def provisioning_template_options(base_options)
-    base_options
+  # Add search criteria for finding a configuration template.
+  def provisioning_template_options
+    {}
   end
 
   # Change attributes that will be sent to an facet based on inherited values from the hostgroup.

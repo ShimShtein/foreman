@@ -76,7 +76,7 @@ module Api
           end
           param :compute_attributes, Hash, :desc => N_("Additional compute resource specific attributes.")
 
-          Facets.configuration.registered_facets.values.each do |facet_config|
+          Facets.registered_facets.values.each do |facet_config|
             next unless facet_config.api_param_group && facet_config.api_controller
             param "#{facet_config.name}_attributes".to_sym, Hash, :desc => facet_config.api_param_group_description || N_("Parameters for host's %s facet" % facet_config.name) do
               param_group facet_config.api_param_group, facet_config.api_controller

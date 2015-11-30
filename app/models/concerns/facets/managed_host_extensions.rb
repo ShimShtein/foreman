@@ -12,7 +12,7 @@ module Facets
         hash = super
 
         # include all facet attributes by default
-        host_facets_with_definitions.each do |facet, facet_definition|
+        facets_with_definitions.each do |facet, facet_definition|
           hash["#{facet_definition.name}_attributes"] = facet.attributes.reject { |key, _| %w(created_at updated_at).include? key }
         end
         hash
@@ -20,32 +20,48 @@ module Facets
     end
 
     def self.refresh_facet_relations(klass)
-      Facets.configuration.registered_facets.values.each do |facet_config|
+      Facets.registered_facets.values.each do |facet_config|
         self.register_facet_relation(klass, facet_config)
       end
     end
 
     def self.register_facet_relation(klass, facet_config)
       klass.class_eval do
-        has_one facet_config.name, :class_name => facet_config.model_class.name, :foreign_key => :host_id, :inverse_of => :host
+        has_one facet_config.name, :class_name => facet_config.model.name, :foreign_key => :host_id, :inverse_of => :host
         accepts_nested_attributes_for facet_config.name
         alias_method "#{facet_config.name}_attributes", facet_config.name
 
-        include facet_config.extension_class if facet_config.extension
+        include facet_config.extension if facet_config.extension
 
         include_in_clone facet_config.name
+
+        facet_config.compatibility_properties.each do |prop|
+          define_method(prop) { |*args| forward_property_call(prop, args, facet_config.name) }
+        end if facet_config.compatibility_properties
       end
     end
 
-    def host_facets
-      host_facets_with_definitions.keys
+    def facets
+      facets_with_definitions.keys
     end
 
-    def host_facets_with_definitions
-      Hash[(Facets.configuration.registered_facets.values.map do |facet_config|
+    # This method will return a hash of facets for a specific host including the coresponding definitions.
+    # The output should look like this:
+    # { host.puppet_aspect => Facets.registered_facets[:puppet_aspect] }
+    def facets_with_definitions
+      Hash[(Facets.registered_facets.values.map do |facet_config|
         facet = send(facet_config.name)
         [facet, facet_config] if facet
       end).compact]
+    end
+
+    private
+
+    def forward_property_call(property, args, facet)
+      facet_instance = send(facet)
+      return nil unless facet_instance
+
+      facet_instance.send(property, args)
     end
   end
 end

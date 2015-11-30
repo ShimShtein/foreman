@@ -6,15 +6,17 @@ module FacetsHelper
     base_tabs
   end
 
+  private
+
   def load_facets(host)
-    Hash[host.host_facets_with_definitions.map do |facet, definition|
+    Hash[host.facets_with_definitions.map do |facet, definition|
       [definition.name, facet]
     end]
   end
 
   def helper_tabs(host)
     tab_definitions = {}
-    host.host_facets_with_definitions.each do |facet, facet_definition|
+    host.facets_with_definitions.each do |facet, facet_definition|
       if facet_definition.tabs.is_a? Hash
         tab_definitions.merge!(facet_definition.tabs)
       else

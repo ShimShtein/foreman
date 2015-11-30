@@ -339,8 +339,8 @@ class Host::Managed < Host::Base
     opts[:hostgroup_id]       ||= hostgroup_id
     opts[:environment_id]     ||= environment_id
 
-    host_facets.each do |facet|
-      opts = facet.provisioning_template_options(opts)
+    facets.each do |facet|
+      opts.merge!(facet.provisioning_template_options)
     end
 
     ProvisioningTemplate.find_template opts
@@ -434,7 +434,7 @@ class Host::Managed < Host::Base
     info_hash['parameters'] = param
     info_hash['environment'] = param["foreman_env"] if Setting["enc_environment"] && param["foreman_env"]
 
-    host_facets.each do |facet|
+    facets.each do |facet|
       info_hash.deep_merge! facet.info
     end
 
@@ -534,8 +534,8 @@ class Host::Managed < Host::Base
       self.environment ||= importer.environment unless importer.environment.blank?
     end
 
-    Facets.configuration.registered_facets.values.each do |facet_config|
-      facet_config.model_class.populate_fields_from_facts(self, importer, type, proxy_id)
+    Facets.registered_facets.values.each do |facet_config|
+      facet_config.model.populate_fields_from_facts(self, importer, type, proxy_id)
     end
 
     operatingsystem.architectures << architecture if operatingsystem && architecture && !operatingsystem.architectures.include?(architecture)
@@ -651,7 +651,7 @@ class Host::Managed < Host::Base
     end
     return attributes unless new_hostgroup
 
-    Facets.configuration.registered_facets.values.each do |facet_config|
+    Facets.registered_facets.values.each do |facet_config|
       facet_attributes = attributes["#{facet_config.model}_attributes"]
       facet_attributes = facet_config.model_class.inherited_attributes(new_hostgroup, facet_attributes)
       attributes["#{facet_config.model}_attributes"] = facet_attributes if facet_attributes
@@ -769,10 +769,6 @@ class Host::Managed < Host::Base
     end
     host.refresh_global_status
 
-    host.host_facets.each do |facet|
-      facet.after_clone
-    end
-
     host
   end
 
@@ -828,7 +824,7 @@ class Host::Managed < Host::Base
       ids << p
     end
 
-    host_facets.each do |facet|
+    facets.each do |facet|
       ids += facet.smart_proxy_ids
     end
 
@@ -910,7 +906,7 @@ class Host::Managed < Host::Base
   end
 
   def template_filter_from_facets(kind, base_filter)
-    host_facets.each do |facet|
+    facets.each do |facet|
       base_filter.deep_merge!(facet.template_filter_options(kind))
     end
     base_filter
