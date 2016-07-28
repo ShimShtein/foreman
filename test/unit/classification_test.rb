@@ -36,7 +36,7 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)},location=#{taxonomies(:location1)}",
                           :value => 'test',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     enc = classification.enc
 
@@ -145,13 +145,13 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => ['test'],
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     value2 = as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => ['test'],
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -170,13 +170,13 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => ['test'],
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     value2 = as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => ['test'],
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -196,13 +196,13 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:example => {:a => 'test'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => {:b => 'test2'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -222,13 +222,13 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => 'test2'},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:example => 'test'},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -247,20 +247,20 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:a => 'test'},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => {:b => 'test2'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "os=#{operatingsystems(:redhat)}",
                           :value => {:example => {:b => 'test3'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -280,19 +280,19 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:example => {:a => 'test'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => {:b => 'test2'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "os=#{operatingsystems(:redhat)}",
                           :value => {:example => {:a => 'test3'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -302,7 +302,7 @@ class ClassificationTest < ActiveSupport::TestCase
                  classification.send(:values_hash))
   end
 
-  test 'smart class parameter with use_puppet_default on specific matcher does not send a value to puppet' do
+  test 'smart class parameter with skip_foreman on specific matcher does not send a value to puppet' do
     key = FactoryGirl.create(:puppetclass_lookup_key, :as_smart_class_param,
                              :override => true, :key_type => 'string',
                              :default_value => "123", :path => "organization\nos\nlocation",
@@ -312,7 +312,7 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => "345",
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
     enc = classification.enc
     refute enc['base'].has_key?(key.key)
@@ -467,11 +467,11 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:example => {:a => 'test'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => {:b => 'test2'}},
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     key.reload
 
@@ -495,7 +495,7 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => lkey.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => 'test',
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
 
     enc = classification.enc
@@ -509,7 +509,7 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => lkey.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => 'test',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     enc = classification.enc
     assert_equal lvalue.value, enc['base'][lkey.key]
@@ -525,20 +525,20 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => {:example => {:a => 'test'}},
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => {:example => {:b => 'test2'}},
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
 
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "os=#{operatingsystems(:redhat)}",
                           :value => {:example => {:a => 'test3'}},
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
     enc = classification.enc
 
@@ -567,20 +567,20 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{parent_hostgroup}",
                           :value => "parent",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{child_hostgroup}",
                           :value => "child",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match =>"organization=#{taxonomies(:organization1)}",
                           :value => "org",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     enc = classification.enc
@@ -610,20 +610,20 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{parent_hostgroup}",
                           :value => "parent",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{child_hostgroup}",
                           :value => "child",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match =>"location=#{taxonomies(:location1)}",
                           :value => "loc",
-                          :use_puppet_default => true
+                          :skip_foreman => true
     end
 
     enc = classification.enc
@@ -641,13 +641,13 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => 'test_incorrect',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     value2 = as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)},location=#{taxonomies(:location1)}",
                           :value => 'test_correct',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     enc = classification.enc
     key.reload
@@ -674,20 +674,20 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{parent_hostgroup},organization=#{taxonomies(:organization1)}",
                           :value => "parent",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "hostgroup=#{child_hostgroup},organization=#{taxonomies(:organization1)}",
                           :value => "child",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match =>"location=#{taxonomies(:location1)}",
                           :value => "loc",
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     enc = classification.enc
     key.reload
@@ -705,19 +705,19 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => '<%= [2,3] %>',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "organization=#{taxonomies(:organization1)}",
                           :value => '<%= [3,4] %>',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
     as_admin do
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "os=#{operatingsystems(:redhat)}",
                           :value => '<%= [4,5] %>',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     key.reload
@@ -774,7 +774,7 @@ class ClassificationTest < ActiveSupport::TestCase
       LookupValue.create! :lookup_key_id => key.id,
                           :match => "location=#{taxonomies(:location1)}",
                           :value => '<%= "c" %>',
-                          :use_puppet_default => false
+                          :skip_foreman => false
     end
 
     key.reload

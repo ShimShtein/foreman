@@ -25,7 +25,7 @@
                    :class => "no-stretch #{'masked-input' if f.object.hidden_value?}" %>
     <div class="form-group">
       <%= checkbox_f(f, :use_puppet_default, :label => _('Use Puppet default'),
-                     :help_inline => use_puppet_default_help,
+                     :help_inline => skip_foreman_help,
                      :size => "col-md-1", :label_size => "col-md-2", :table_field => true,
                      :onchange => 'toggleUsePuppetDefaultValue(this, "default_value")',
                      :disabled => (is_param && !f.object.override)) if is_param %>

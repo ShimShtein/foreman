@@ -19,8 +19,8 @@ module CommonParametersHelper
     content_tag(:span, options[:popover], :class => "input-group-addon") + lookup_key_field(id, value, options)
   end
 
-  def use_puppet_default_help link_title = nil, title = _("Use Puppet default")
-    popover(link_title, _("Do not send this parameter via the ENC.<br>Puppet will use the value defined in the manifest."), :title => title)
+  def skip_foreman_help(link_title = nil, title = _("Skip prameter"), body = _("Foreman will not manage this parameter."))
+    popover(link_title, body, :title => title)
   end
 
   def hidden_value_field(f, field, disabled, options = {})

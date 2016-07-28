@@ -173,7 +173,7 @@ module Classification
         computed_lookup_value = {:value => lookup_value.send(value_method), :element => element,
                                  :element_name => element_name}
 
-        computed_lookup_value.merge!({ :managed => lookup_value.use_puppet_default }) if lookup_value.lookup_key.puppet?
+        computed_lookup_value.merge!({ :managed => lookup_value.skip_foreman }) if lookup_value.lookup_key.puppet?
         break
       end
       computed_lookup_value
@@ -192,7 +192,7 @@ module Classification
 
       lookup_values.each do |lookup_value|
         element, element_name = get_element_and_element_name(lookup_value)
-        next if ((options[:skip_fqdn] && element=="fqdn") || lookup_value.use_puppet_default)
+        next if ((options[:skip_fqdn] && element=="fqdn") || lookup_value.skip_foreman)
         elements << element
         element_names << element_name
         if should_avoid_duplicates
@@ -221,7 +221,7 @@ module Classification
       # and then merging with higher priority
       lookup_values.reverse_each do |lookup_value|
         element, element_name = get_element_and_element_name(lookup_value)
-        next if ((options[:skip_fqdn] && element=="fqdn") || lookup_value.use_puppet_default)
+        next if ((options[:skip_fqdn] && element=="fqdn") || lookup_value.skip_foreman)
         elements << element
         element_names << element_name
         values.deep_merge!(lookup_value.value)
