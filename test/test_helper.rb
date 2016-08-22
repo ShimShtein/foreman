@@ -2,6 +2,7 @@ require 'rubygems'
 
 ENV["RAILS_ENV"] = "test"
 require File.expand_path('../../config/environment', __FILE__)
+load "#{Rails.root}/db/schema.rb"
 require 'rails/test_help'
 require 'mocha/mini_test'
 require 'factory_girl_rails'
