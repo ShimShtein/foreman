@@ -124,7 +124,8 @@ class Operatingsystem < ApplicationRecord
   end
 
   def medium_uri(host, url = nil)
-    url ||= host.medium.path
+    url ||= host.medium.path unless host.medium.nil?
+    url ||= ''
     medium_vars_to_uri(url, host.architecture.name, host.operatingsystem)
   end
 
@@ -186,26 +187,30 @@ class Operatingsystem < ApplicationRecord
   end
 
   # sets the prefix for the tfp files based on the os / arch combination
-  def pxe_prefix(arch)
-    "boot/#{self}-#{arch}".tr(" ","-")
+  def pxe_prefix(arch, host)
+    "boot/#{self}-#{arch}-#{medium_digest(host)}".tr(" ","-")
+  end
+
+  def medium_digest(host)
+    host.nil? ? '' : Digest::SHA1.hexdigest(medium_uri(host).to_s)
   end
 
   def pxe_files(medium, arch, host = nil)
     boot_files_uri(medium, arch, host).collect do |img|
-      { pxe_prefix(arch).to_sym => img.to_s}
+      { pxe_prefix(arch, host).to_sym => img.to_s}
     end
   end
 
-  def kernel(arch)
-    bootfile(arch,:kernel)
+  def kernel(arch, host)
+    bootfile(arch,:kernel, host)
   end
 
-  def initrd(arch)
-    bootfile(arch,:initrd)
+  def initrd(arch, host)
+    bootfile(arch,:initrd, host)
   end
 
-  def bootfile(arch, type)
-    pxe_prefix(arch) + "-" + self.family.constantize::PXEFILES[type.to_sym]
+  def bootfile(arch, type, host)
+    pxe_prefix(arch, host) + "-" + self.family.constantize::PXEFILES[type.to_sym]
   end
 
   # Does this OS family support a build variant that is constructed from a prebuilt archive
