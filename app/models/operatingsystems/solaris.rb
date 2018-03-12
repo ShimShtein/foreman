@@ -6,7 +6,7 @@ class Solaris < Operatingsystem
   end
 
   # sets the prefix for the tftp files based on the OS
-  def pxe_prefix(_architecture, _host)
+  def pxe_prefix(_medium_provider)
     "boot/#{file_prefix}"
   end
 
@@ -28,11 +28,7 @@ class Solaris < Operatingsystem
   end
 
   def pxedir
-    "Solaris_#{minor}/Tools/Boot"
-  end
-
-  def url_for_boot(file)
-    pxedir + "/" + PXEFILES[file]
+    "Solaris_$minor/Tools/Boot"
   end
 
   def boot_filename(host)

@@ -73,7 +73,8 @@ module HostCommon
 
   # Returns a url pointing to boot file
   def url_for_boot(file)
-    "#{os.medium_uri(self)}/#{os.url_for_boot(file)}"
+    medium_provider = BootFiles.new(self).provider
+    os.url_for_boot(medium_provider, file)
   end
 
   def puppetca?
