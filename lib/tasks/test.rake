@@ -11,6 +11,6 @@ namespace :test do
 end
 
 # Ensure webpack files are compiled in case integration tests are executed
-Rake::Task[:test].enhance ['webpack:try_compile'] do
-  Rake::FileUtilsExt.verbose(false)
-end
+# Rake::Task[:test].enhance ['webpack:try_compile'] do
+#   Rake::FileUtilsExt.verbose(false)
+# end

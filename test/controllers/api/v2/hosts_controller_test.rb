@@ -531,6 +531,33 @@ class Api::V2::HostsControllerTest < ActionController::TestCase
     assert_response :success
   end
 
+  def test_gazillion_interfaces
+    puts "ZZZZZZZZZZZZZZZZZZZ"
+    require 'flamegraph'
+    User.current=nil
+    total = 50
+    hostname = fact_json['name']
+    facts    = fact_json['facts']
+    facts.tap do |facts|
+      facts['interfaces'] = (1..total).map { |i| "eth0_#{i}" }.join(',')
+      (1..total).each do |i|
+        facts["ipaddress_eth0_#{i}"] = "192.168.#{i / 255}.#{i % 255}"
+        facts["macaddress_eth0_#{i}"] = "00:10:10:10:#{sprintf('%02X', i / 255)}:#{sprintf('%02X', i % 255)}"
+        facts["mtu_eth0_#{i}"] = "255.255.255.0"
+        facts["netmask_eth0_#{i}"] = "255.255.255.0"
+        facts["network_eth0_#{i}"] = "192.168.#{i / 255}.0"
+      end
+    end
+    puts "BEFORE"
+    post :facts, params: { :name => hostname, :facts => facts }, session: set_session_user
+    binding.pry
+    # Flamegraph.generate('/tmp/fg.html') do
+      post :facts, params: { :name => hostname, :facts => facts }, session: set_session_user
+    # end
+    puts "AFTER"
+    assert_response :success
+  end
+
   def test_create_valid_node_from_json_facts_object_with_certname
     User.current=nil
     hostname = fact_json['name']
