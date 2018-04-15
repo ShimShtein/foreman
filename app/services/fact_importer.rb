@@ -192,7 +192,7 @@ class FactImporter
   end
 
   def db_facts
-    host.fact_values.where(:fact_name => fact_names.values)
+    host.fact_values.where(:fact_name => fact_names.values).includes(:fact_name)
   end
 
   def ensure_no_active_transaction
