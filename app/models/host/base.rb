@@ -197,6 +197,7 @@ module Host
       if !self.managed? && self.primary_interface.mac.blank? && self.primary_interface.identifier.blank?
         identifier, values = parser.suggested_primary_interface(self)
         self.primary_interface.mac = Net::Validations.normalize_mac(values[:macaddress]) if values.present?
+        binding.pry
         self.primary_interface.update_attribute(:identifier, identifier)
         self.primary_interface.save!
       end
@@ -451,7 +452,7 @@ module Host
       # update bond.attached_interfaces when interface is in the list and identifier has changed
       update_bonds(iface, name, attributes) if iface.identifier != name && !iface.virtual? && iface.persisted?
       attributes = attributes.clone
-      iface.mac = attributes.delete(:macaddress)
+      iface.mac = attributes.delete(:macaddress) if iface.mac && iface.mac.uppercase != attributes[:macaddress]
       iface.ip = attributes.delete(:ipaddress)
       iface.ip6 = attributes.delete(:ipaddress6)
       iface.ip6 = nil if (IPAddr.new('fe80::/10').include?(iface.ip6) rescue false)
