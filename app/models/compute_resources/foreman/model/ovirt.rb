@@ -270,14 +270,29 @@ module Foreman::Model
       end
       args.delete(:cores) if (args[:cores].blank? && cores) || (args[:cores].to_i == cores)
       args.delete(:memory) if (args[:memory].blank? && memory) || (args[:memory].to_i == memory)
+
+      template_volumes = template.volumes
+
+      disks = []
+
+      args[:volumes_attributes].values.select { |x| x[:id].present? && x[:preallocate] == '0' }.each do |volume|
+        template_volume = template_volumes.detect{|v| v.id == volume["id"]}
+        if template_volume.storage_domain != volume["storage_domain"]
+          disks << { :id => volume["id"], :storage_domain => volume["storage_domain"] }
+        end
+      end
+
+      disks = args[:disks] + disks if args[:disks].present?
+      args.merge!(:clone => true, :disks => disks) if disks.present?
     end
 
     def create_vm(args = {})
       args[:comment] = args[:user_data] if args[:user_data]
       args[:template] = args[:image_id] if args[:image_id]
-      sanitize_inherited_vm_attributes(args)
 
       preallocate_disks(args) if args[:volumes_attributes].present?
+
+      sanitize_inherited_vm_attributes(args)
 
       vm = super({ :first_boot_dev => 'network', :quota => ovirt_quota }.merge(args))
 
@@ -295,7 +310,7 @@ module Foreman::Model
       change_allocation_volumes = args[:volumes_attributes].values.select { |x| x[:id].present? && x[:preallocate] == '1' }
       if args[:template].present? && change_allocation_volumes.present?
         disks = change_allocation_volumes.map do |volume|
-          { :id => volume[:id], :sparse => 'false', :format => 'raw', :storagedomain => volume[:storage_domain] }
+          { :id => volume[:id], :sparse => 'false', :format => 'raw', :storage_domain => volume[:storage_domain] }
         end
         args.merge!(:clone => true, :disks => disks)
       end
