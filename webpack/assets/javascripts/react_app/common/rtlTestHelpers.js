@@ -8,6 +8,7 @@ import { i18nProviderWrapperFactory } from './i18nProviderWrapperFactory';
 import reducers from '../redux/reducers';
 import { middlewares } from '../redux/middlewares';
 import { initMockStore } from './testInitialReduxStore';
+import API from '../redux/API/API';
 
 export const createTestStore = (
   initialState = {},
@@ -202,4 +203,25 @@ export const rtlHelpers = {
         resolve();
       }, timeout)
     ),
+
+  mockAPIGetSuccess: (data, status = 200, statusText = 'OK') => {
+    jest.mock('../redux/API/API');
+    API.get.mockResolvedValue(
+      {
+        data,
+        status,
+        statusText,
+      }
+    );
+  },
+
+  mockAPIGetFailure: (data, status = 500) => {
+    jest.mock('../redux/API/API');
+    API.get.mockRejectedValue(
+      {
+        ...data,
+        status,
+      },
+  );
+  },
 };

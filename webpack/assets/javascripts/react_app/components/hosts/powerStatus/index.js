@@ -15,7 +15,6 @@ const ConnectedPowerStatus = ({ id, url }) => {
   useEffect(() => {
     dispatch(get({ key, url }));
   }, [url, key, dispatch]);
-
   return <PowerStatus state={state} title={title} />;
 };
 
